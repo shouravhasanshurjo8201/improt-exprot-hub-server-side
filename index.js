@@ -64,14 +64,27 @@ async function run() {
             res.send(result);
         });
 
-
         app.post('/Products', async (req, res) => {
             console.log("Import Data log", req.body)
             const importData = req.body
             const result = await myColl.insertOne(importData);
             res.send(result);
         })
-       
+        app.delete('/Products/:id', async (req, res) => {
+            try {
+                const id = req.params.id;
+                const query = { _id: new ObjectId(id) };
+                const result = await myColl.deleteOne(query);
+
+                if (result.deletedCount === 1) {
+                    res.send({ success: true, message: "Product deleted successfully" });
+                } else {
+                    res.status(404).send({ success: false, message: "Product not found" });
+                }
+            } catch (error) {
+                res.status(500).send({ success: false, message: "Invalid ID or server error" });
+            }
+        });
 
         app.put('/Products/:id', async (req, res) => {
             try {
@@ -96,7 +109,6 @@ async function run() {
                 res.status(500).send({ success: false, message: "Server Error" });
             }
         });
-
 
         await client.db("admin").command({ ping: 1 });
         console.log("Pinged your deployment. You successfully connected to MongoDB!");
