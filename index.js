@@ -60,7 +60,7 @@ async function run() {
         app.get('/Products/ImporterEmail/:email', async (req, res) => {
             const email = req.params.email;
             const query = { Importer_Email: email };
-            const result = await myColl.find(query).toArray();
+            const result = await myColl.find(query).sort({ _id: -1 }).toArray();
             res.send(result);
         });
 
@@ -71,7 +71,31 @@ async function run() {
             const result = await myColl.insertOne(importData);
             res.send(result);
         })
-      
+       
+
+        app.put('/Products/:id', async (req, res) => {
+            try {
+                const id = req.params.id;
+                const updatedData = req.body;
+                const query = { _id: new ObjectId(id) };
+                const { importQuantity, importerEmail } = updatedData;
+
+                const updateDoc = {
+                    $inc: { AvailableQuantity: -importQuantity },
+                    $set: { Importer_Email: importerEmail }
+                };
+
+                const result = await myColl.updateOne(query, updateDoc);
+                if (result.matchedCount === 0) {
+                    res.status(404).send({ success: false, message: "Product not found" });
+                } else {
+                    res.send({ success: true, message: "Product updated successfully" });
+                }
+            } catch (error) {
+                console.error("Update Error:", error);
+                res.status(500).send({ success: false, message: "Server Error" });
+            }
+        });
 
 
         await client.db("admin").command({ ping: 1 });
