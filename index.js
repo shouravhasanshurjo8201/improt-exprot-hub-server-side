@@ -32,6 +32,17 @@ async function run() {
             res.send(allData)
         })
 
+        app.get('/Products/latest', async (req, res) => {
+            try {
+                const cursor = myColl.find().sort({ _id: -1 }).limit(6);
+                const latestProducts = await cursor.toArray();
+                res.send(latestProducts);
+            } catch (error) {
+                console.error("Error fetching latest products:", error);
+                res.status(500).send({ success: false, message: "Server error" });
+            }
+        });
+
         app.get('/Products/id/:id', async (req, res) => {
             const id = req.params.id;
             const query = { _id: new ObjectId(id) };
