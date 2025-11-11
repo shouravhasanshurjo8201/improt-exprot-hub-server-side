@@ -39,6 +39,13 @@ async function run() {
             res.send(result);
         })
 
+        app.get('/Products/ExporterEmail/:email', async (req, res) => {
+            const email = req.params.email;
+            const query = { Exporter_Email: email };
+            const result = await myColl.find(query).toArray();
+            res.send(result);
+        });
+      
         await client.db("admin").command({ ping: 1 });
         console.log("Pinged your deployment. You successfully connected to MongoDB!");
     } finally {
