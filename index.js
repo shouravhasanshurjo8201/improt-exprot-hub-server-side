@@ -65,6 +65,13 @@ async function run() {
         });
 
 
+        app.post('/Products', async (req, res) => {
+            console.log("Import Data log", req.body)
+            const importData = req.body
+            const result = await myColl.insertOne(importData);
+            res.send(result);
+        })
+      
 
 
         await client.db("admin").command({ ping: 1 });
