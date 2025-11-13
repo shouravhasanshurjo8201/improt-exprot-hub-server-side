@@ -23,7 +23,7 @@ app.get('/', (req, res) => {
 
 async function run() {
     try {
-        await client.connect();
+        // await client.connect();
         const ImportExportDB = client.db("ImportExportDB");
         const myColl = ImportExportDB.collection("AllProducts");
         app.get('/Products', async (req, res) => {
@@ -70,14 +70,14 @@ async function run() {
             const result = await myColl.insertOne(importData);
             res.send(result);
         })
-        app.delete('/Products/:id', async (req, res) => {
+        app.delete('/Products/Delete/:id', async (req, res) => {
             try {
                 const id = req.params.id;
                 const query = { _id: new ObjectId(id) };
                 const result = await myColl.deleteOne(query);
 
                 if (result.deletedCount === 1) {
-                    res.send({ success: true, message: "Product deleted successfully" });
+                    res.send({ deletedCount: result.deletedCount, success: true, message: "Product deleted successfully" });
                 } else {
                     res.status(404).send({ success: false, message: "Product not found" });
                 }
@@ -86,13 +86,12 @@ async function run() {
             }
         });
 
-        app.put('/Products/:id', async (req, res) => {
+        app.patch('/Products/Patch/:id', async (req, res) => {
             try {
                 const id = req.params.id;
-                const updatedData = req.body;
-                const query = { _id: new ObjectId(id) };
-                const { importQuantity, importerEmail } = updatedData;
+                const { importQuantity, importerEmail } = req.body;
 
+                const query = { _id: new ObjectId(id) };
                 const updateDoc = {
                     $inc: { AvailableQuantity: -importQuantity },
                     $set: { Importer_Email: importerEmail }
@@ -110,7 +109,42 @@ async function run() {
             }
         });
 
-        await client.db("admin").command({ ping: 1 });
+        app.put('/Products/Put/:id', async (req, res) => {
+            try {
+                const id = req.params.id;
+                const updatedData = req.body;
+                const query = { _id: new ObjectId(id) };
+
+                const updateDoc = {
+                    $set: {
+                        ProductName: updatedData.ProductName,
+                        ProductImage: updatedData.ProductImage,
+                        Price: updatedData.Price,
+                        OriginCountry: updatedData.OriginCountry,
+                        Rating: updatedData.Rating,
+                        AvailableQuantity: updatedData.AvailableQuantity,
+                    },
+                };
+
+                const result = await myColl.updateOne(query, updateDoc);
+
+                if (result.matchedCount) {
+                    res.send({
+                        success: true,
+                        modifiedCount: result.modifiedCount,
+                        message: "Product updated successfully",
+                    });
+                } else {
+                    res.status(404).send({ success: false, message: "Product not found" });
+                }
+            } catch (error) {
+                console.error("Update Error:", error);
+                res.status(500).send({ success: false, message: "Server Error" });
+            }
+        });
+
+
+        // await client.db("admin").command({ ping: 1 });
         console.log("Pinged your deployment. You successfully connected to MongoDB!");
     } finally {
         // await client.close();
