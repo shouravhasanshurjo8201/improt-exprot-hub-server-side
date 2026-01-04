@@ -23,9 +23,9 @@ app.get('/', (req, res) => {
 
 async function run() {
     try {
-        // await client.connect();
         const ImportExportDB = client.db("ImportExportDB");
         const myColl = ImportExportDB.collection("AllProducts");
+        const usersColl = ImportExportDB.collection("users");
         app.get('/Products', async (req, res) => {
             const cursor = myColl.find();
             const allData = await cursor.toArray();
@@ -143,11 +143,66 @@ async function run() {
             }
         });
 
+        app.post('/users', async (req, res) => {
+            const user = req.body;
 
-        // await client.db("admin").command({ ping: 1 });
+            const existingUser = await usersColl.findOne({ email: user.email });
+            if (existingUser) {
+                return res.send({ message: "User already exists" });
+            }
+
+            const result = await usersColl.insertOne({
+                ...user,
+                role: "user",
+                createdAt: new Date()
+            });
+
+            res.send(result);
+        });
+
+        app.get('/users/:email', async (req, res) => {
+            const email = req.params.email;
+            const user = await usersColl.findOne({ email });
+            res.send(user);
+        });
+
+        app.get('/users/role/:email', async (req, res) => {
+            const email = req.params.email;
+            const user = await usersColl.findOne(
+                { email },
+                { projection: { role: 1 } }
+            );
+
+            res.send({ role: user?.role || "user" });
+        });
+
+        app.patch('/users/role/:id', async (req, res) => {
+            const id = req.params.id;
+            const { role } = req.body;
+
+            const result = await usersColl.updateOne(
+                { _id: new ObjectId(id) },
+                { $set: { role } }
+            );
+
+            res.send(result);
+        });
+
+        app.patch('/users/profile/:email', async (req, res) => {
+            const email = req.params.email;
+            const updatedInfo = req.body;
+
+            const result = await usersColl.updateOne(
+                { email },
+                { $set: updatedInfo }
+            );
+
+            res.send(result);
+        });
+
+
         console.log("Pinged your deployment. You successfully connected to MongoDB!");
     } finally {
-        // await client.close();
     }
 }
 run().catch(console.dir);
