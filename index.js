@@ -26,6 +26,7 @@ async function run() {
         const ImportExportDB = client.db("ImportExportDB");
         const myColl = ImportExportDB.collection("AllProducts");
         const usersColl = ImportExportDB.collection("users");
+
         app.get('/Products', async (req, res) => {
             const cursor = myColl.find();
             const allData = await cursor.toArray();
@@ -143,27 +144,59 @@ async function run() {
             }
         });
 
-        app.post('/users', async (req, res) => {
-            const user = req.body;
+        app.post('/login-user', async (req, res) => {
+            try {
+                const userData = req.body;
+                if (!userData?.email) {
+                    return res.status(400).send({ message: 'Email required' });
+                }
 
-            const existingUser = await usersColl.findOne({ email: user.email });
-            if (existingUser) {
-                return res.send({ message: "User already exists" });
+                const query = { email: userData.email };
+                const alreadyExists = await usersColl.findOne(query);
+
+                if (alreadyExists) {
+                    const updateDoc = {
+                        $set: {
+                            last_loggedIn: new Date().toISOString(),
+                            name: userData.name || alreadyExists.name,
+                            photoURL: userData.photoURL || alreadyExists.photoURL,
+                        }
+                    };
+                    const result = await usersColl.updateOne(query, updateDoc);
+                    res.send({ message: 'User updated', result });
+                } else {
+                    userData.created_at = new Date().toISOString();
+                    userData.last_loggedIn = new Date().toISOString();
+                    userData.role = "user";
+
+                    const result = await usersColl.insertOne(userData);
+                    res.send({ message: 'User created', result });
+                }
+
+            } catch (error) {
+                console.error(error);
+                res.status(500).send({ message: 'Internal Server Error' });
             }
+        });
 
-            const result = await usersColl.insertOne({
-                ...user,
-                role: "user",
-                createdAt: new Date()
-            });
-
+        app.get('/users', async (req, res) => {
+            const result = await usersColl.find().toArray();
             res.send(result);
         });
 
         app.get('/users/:email', async (req, res) => {
-            const email = req.params.email;
-            const user = await usersColl.findOne({ email });
-            res.send(user);
+            try {
+                const email = req.params.email;
+                const user = await usersColl.findOne({ email });
+
+                if (!user) {
+                    return res.status(404).send({ message: "User not found", role: "user" });
+                }
+
+                res.send(user);
+            } catch (error) {
+                res.status(500).send({ message: "Server error" });
+            }
         });
 
         app.get('/users/role/:email', async (req, res) => {
@@ -190,20 +223,29 @@ async function run() {
 
         app.patch('/users/profile/:email', async (req, res) => {
             const email = req.params.email;
-            const updatedInfo = req.body;
+            const { displayName, photoURL, phoneNumber, jobTitle, bio } = req.body;
 
-            const result = await usersColl.updateOne(
-                { email },
-                { $set: updatedInfo }
-            );
+            const query = { email: email };
+            const updatedDoc = {
+                $set: {
+                    name: displayName,
+                    photoURL,
+                    phoneNumber,
+                    jobTitle,
+                    bio
+                }
+            };
 
-            res.send(result);
+            try {
+                const result = await usersColl.updateOne(query, updatedDoc);
+                res.send(result);
+            } catch (error) {
+                res.status(500).send({ message: "Failed to update profile" });
+            }
         });
 
-
         console.log("Pinged your deployment. You successfully connected to MongoDB!");
-    } finally {
-    }
+    } finally { }
 }
 run().catch(console.dir);
 
