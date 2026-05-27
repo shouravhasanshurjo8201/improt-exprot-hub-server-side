@@ -71,6 +71,7 @@ async function run() {
             const result = await myColl.insertOne(importData);
             res.send(result);
         })
+
         app.delete('/Products/Delete/:id', async (req, res) => {
             try {
                 const id = req.params.id;
@@ -91,13 +92,11 @@ async function run() {
             try {
                 const id = req.params.id;
                 const { importQuantity, importerEmail } = req.body;
-
                 const query = { _id: new ObjectId(id) };
                 const updateDoc = {
                     $inc: { AvailableQuantity: -importQuantity },
                     $set: { Importer_Email: importerEmail }
                 };
-
                 const result = await myColl.updateOne(query, updateDoc);
                 if (result.matchedCount === 0) {
                     res.status(404).send({ success: false, message: "Product not found" });
@@ -115,7 +114,6 @@ async function run() {
                 const id = req.params.id;
                 const updatedData = req.body;
                 const query = { _id: new ObjectId(id) };
-
                 const updateDoc = {
                     $set: {
                         ProductName: updatedData.ProductName,
@@ -168,7 +166,6 @@ async function run() {
                     userData.created_at = new Date().toISOString();
                     userData.last_loggedIn = new Date().toISOString();
                     userData.role = "user";
-
                     const result = await usersColl.insertOne(userData);
                     res.send({ message: 'User created', result });
                 }
